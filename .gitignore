@@ -2,6 +2,14 @@
 data/video/*.mp4
 uploads/*.mp4
 
+# Demo inputs generated for the screen recording (real ones get committed)
+data/calibration/
+data/boxes/reference/
+data/boxes/target/
+
+# Demo recording
+DEMO*.mp4
+
 # Generated outputs and archives
 outputs/
 outputs_archive/

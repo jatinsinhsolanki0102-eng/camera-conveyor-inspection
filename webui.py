@@ -298,4 +298,14 @@ if __name__ == '__main__':
     print('Conveyor Inspection UI:  http://127.0.0.1:5000')
     print('Upload a conveyor video (+ optional checkerboard photos and box ')
     print('crops) to get the inspection report for THAT video.')
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+        in_use = probe.connect_ex(('127.0.0.1', 5000)) == 0
+    if in_use:
+        print('Port 5000 is already in use - a second server instance would')
+        print('silently double-bind it. Starting a second copy without a')
+        print('custom port is not supported; open the running instance at')
+        print('http://127.0.0.1:5000 instead.')
+        raise SystemExit(1)
     app.run(host='127.0.0.1', port=5000, debug=False, threaded=True)
