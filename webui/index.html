@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conveyor Inspection UI</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d3748;
+    --txt:#e6edf3; --mut:#8b949e; --acc:#3fb950; --warn:#d29922; --err:#f85149;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:15px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:15px;color:var(--mut);font-weight:500;margin:0 0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:20px;margin-bottom:20px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  label b{display:block;font-weight:600;margin-bottom:6px}
+  .hint{color:var(--mut);font-size:12.5px;margin-top:4px}
+  input[type=file]{width:100%;border:1px dashed var(--line);border-radius:8px;
+        background:var(--panel2);padding:10px;color:var(--txt);font-size:13px}
+  .num input{width:100%;background:var(--panel2);border:1px solid var(--line);
+        border-radius:8px;color:var(--txt);padding:9px 10px;font-size:14px}
+  .btn{background:var(--acc);color:#0d1117;border:0;border-radius:10px;
+       font-weight:700;font-size:16px;padding:14px 22px;cursor:pointer;
+       width:100%;margin-top:6px}
+  .btn:disabled{opacity:.55;cursor:progress}
+  .bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;
+       margin-top:12px;display:none}
+  .bar>i{display:block;height:100%;width:0;background:var(--acc);
+         transition:width .6s ease}
+  .pulse i{animation:slide 1.2s infinite;width:40%}
+  @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+  .mode{display:flex;gap:10px;margin:14px 0}
+  .mode label{flex:1;background:var(--panel2);border:1px solid var(--line);
+        border-radius:10px;padding:12px 14px;cursor:pointer}
+  .mode input{accent-color:var(--acc; ) }
+  .mode b{display:block}
+  .mode span{color:var(--mut);font-size:12px}
+  .warn{background:#2d2313;border:1px solid var(--warn);color:var(--warn);
+        border-radius:8px;padding:10px 12px;font-size:13.5px;margin:14px 0}
+  .err{background:#2b1214;border:1px solid var(--err);color:var(--err);
+       border-radius:8px;padding:10px 12px;font-size:13.5px;margin:14px 0}
+  pre{background:#0b0f16;border:1px solid var(--line);border-radius:8px;
+      padding:14px;overflow:auto;font:12.5px/1.45 Consolas,monospace;
+      color:#c9d1d9;white-space:pre-wrap;margin:0}
+  details{margin:10px 0}
+  summary{cursor:pointer;color:var(--mut);font-size:13.5px}
+  details>pre{margin-top:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+        gap:12px;margin-top:12px}
+  .img{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+       overflow:hidden}
+  .img img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;
+           background:#000}
+  .img a{display:block;padding:6px 10px;font-size:12.5px;color:var(--mut);
+         text-decoration:none;overflow:hidden;text-overflow:ellipsis;
+         white-space:nowrap}
+  .img a:hover{color:var(--acc)}
+  .img .folder{font-size:11px;color:var(--acc);padding:0 10px 6px}
+  .footer{margin-top:30px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+  .badge{display:inline-block;background:var(--panel2);border:1px solid var(--line);
+         color:var(--txt);border-radius:20px;font-size:12px;padding:3px 12px;margin:2px 4px 2px 0}
+  #status{color:var(--mut);font-size:13.5px;margin-top:10px}
+  .meta{font-size:13px;color:var(--mut);margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Camera-Based Conveyor Inspection &amp; Tracking</h1>
+  <h2>Input a video (plus optional checkerboard / box-crop images) and get the
+    inspection report and figures for <em>that</em> input.</h2>
+
+  <div class="card">
+    <form id="form">
+      <div class="cols">
+        <div>
+          <label><b>Conveyor video *</b>
+            <input type="file" name="video" accept=".mp4,.avi,.mov,.mkv" required>
+          </label>
+          <div class="hint">A steady clip of boxes moving on a belt
+            (phone shot of objects moving across a table works too).</div>
+
+          <div style="margin-top:14px">
+            <label><b>Checkerboard photos — Module B (optional)</b>
+              <input type="file" name="checkerboards" accept=".png,.jpg,.jpeg" multiple>
+            </label>
+            <div class="hint">10–15 photos of a 9x6-inner-corner checkerboard
+              laid on the belt plane → real cm sizes and belt speed in cm/s.</div>
+          </div>
+        </div>
+
+        <div>
+          <span class="badge">box_type_A</span>
+          <span class="badge">box_type_B</span>
+          <span class="badge">box_type_C</span>
+          <label><b>Box crops — Module E (optional)</b>
+            <input type="file" name="crops_A" accept=".png,.jpg,.jpeg" multiple>
+          </label>
+          <div class="hint">~10 tight crops per class → type recognition.
+            If skipped, bundled synthetic templates are used.</div>
+          <div style="height:10px"></div>
+          <label style="margin-top:8px"><b>Class B crops</b>
+            <input type="file" name="crops_B" accept=".png,.jpg,.jpeg" multiple>
+          </label>
+          <div style="height:10px"></div>
+          <label style="margin-top:8px"><b>Class C crops</b>
+            <input type="file" name="crops_C" accept=".png,.jpg,.jpeg" multiple>
+          </label>
+        </div>
+      </div>
+
+      <div class="num cols" style="margin-top:16px">
+        <div>
+          <label><b>Frames to process</b>
+            <input type="number" name="frames" value="120" min="10">
+          </label>
+          <div class="hint">How many frames at 30 fps (≈4 s).</div>
+        </div>
+        <div>
+          <label><b>Start frame</b>
+            <input type="number" name="start_frame" value="0" min="0">
+          </label>
+          <div class="hint">Skip ahead in the clip.</div>
+        </div>
+        <div>
+          <label><b>Working width (px)</b>
+            <input type="number" name="max_width" value="960" min="160" max="3840">
+          </label>
+          <div class="hint">Processing resolution (960 stays fast on 4K).</div>
+        </div>
+        <div>
+          <label><b>Checker square (cm)</b>
+            <input type="number" name="square_cm" value="2.5" min="0.1" step="0.1">
+          </label>
+          <div class="hint">Edge length of one checkerboard square.</div>
+        </div>
+      </div>
+
+      <div class="mode">
+        <label>
+          <input type="radio" name="mode" value="pipeline" checked>
+          <b>Pipeline report (fast)</b>
+          <span>frame → A segment → D Kalman → B cm → C speed → E type</span>
+        </label>
+        <label>
+          <input type="radio" name="mode" value="all">
+          <b>Full demo (modules A–E + pipeline)</b>
+          <span>also runs segmentation grid, optical-flow viz, Kalman overlay,
+                recognition accuracy table</span>
+        </label>
+      </div>
+
+      <button class="btn" id="run" type="submit">Run Inspection</button>
+      <div class="bar" id="bar"><i></i></div>
+      <div id="status"></div>
+    </form>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="err" id="err" style="display:none"></div>
+    <div class="warn" id="warn" style="display:none"></div>
+
+    <div class="card">
+      <h2>Inspection report</h2>
+      <div class="meta" id="meta"></div>
+      <pre id="report">Running…</pre>
+    </div>
+
+    <div class="card">
+      <h2>Figures — outputs for this run</h2>
+      <div class="grid" id="gallery"></div>
+    </div>
+
+    <div class="card" id="logcard">
+      <h2>Processing log per module</h2>
+      <div id="logs"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Modules: A segmentation · B calibration · C optical flow · D Kalman tracking ·
+    E recognition — all classical CV, chained in one pipeline. Previous runs are
+    archived in <code>outputs_archive/</code>.
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('form');
+const runBtn = document.getElementById('run');
+const bar = document.getElementById('bar');
+const statusEl = document.getElementById('status');
+const results = document.getElementById('results');
+const errBox = document.getElementById('err');
+const warnBox = document.getElementById('warn');
+const reportEl = document.getElementById('report');
+const metaEl = document.getElementById('meta');
+const logsEl = document.getElementById('logs');
+const gallery = document.getElementById('gallery');
+
+const MOD_LABEL = {
+  B_calibration: 'Module B — Camera calibration',
+  E_crops: 'Module E — training crops',
+  A_segmentation: 'Module A — Segmentation (4-method grid)',
+  C_optical_flow: 'Module C — Optical flow & belt speed',
+  D_tracking: 'Module D — Kalman tracking',
+  E_recognition: 'Module E — Recognition accuracy',
+  pipeline: 'Integrated pipeline (A→D→B→C→E)',
+};
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errBox.style.display = 'none';
+  warnBox.style.display = 'none';
+  results.style.display = 'none';
+  gallery.innerHTML = '';
+  logsEl.innerHTML = '';
+  runBtn.disabled = true;
+  bar.style.display = 'block';
+  bar.classList.add('pulse');
+  const vname = (document.querySelector('input[name=video]').files[0] || {}).name || '';
+  statusEl.textContent = `Processing "${vname}" — segmenting, tracking, measuring, classifying…`;
+  const started = performance.now();
+  try {
+    const fd = new FormData(form);
+    const resp = await fetch('/api/run', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!data.ok) {
+      errBox.textContent = data.error || 'Unknown error';
+      errBox.style.display = 'block';
+      results.style.display = 'block';
+      return;
+    }
+    // meta
+    const logs = data.logs || {};
+    metaEl.textContent = `Run ${data.rid} · input: ${data.video} · ${data.elapsed}s`;
+    // report
+    reportEl.textContent = data.report || '(no inspection report produced)';
+    if (data.failed && data.failed.length) {
+      warnBox.textContent = 'Some stages had issues: ' + data.failed.join(', ');
+      warnBox.style.display = 'block';
+    } else if (data.warning) {
+      warnBox.textContent = data.warning;
+      warnBox.style.display = 'block';
+    }
+    // module logs
+    const showLogs = document.getElementById('logcard');
+    for (const [k, v] of Object.entries(logs)) {
+      const det = document.createElement('details');
+      const sum = document.createElement('summary');
+      sum.textContent = MOD_LABEL[k] || k;
+      const pre = document.createElement('pre');
+      pre.textContent = v;
+      det.append(sum, pre);
+      logsEl.appendChild(det);
+    }
+    if (!Object.keys(logs).length) logsEl.innerHTML = '<div class="hint">(no log)</div>';
+    showLogs.style.display = Object.keys(logs).length ? 'block' : 'none';
+    // gallery (this run only)
+    const imgs = data.images || [];
+    if (imgs.length) {
+      for (const it of imgs.slice(0, 80)) {
+        const div = document.createElement('div');
+        div.className = 'img';
+        div.innerHTML =
+          `<a href="${it.url}" target="_blank"><img loading="lazy" src="${it.url}"></a>
+           <a href="${it.url}" target="_blank">${escapeHtml(it.name)}</a>
+           <div class="folder">${escapeHtml(it.folder)}</div>`;
+        gallery.appendChild(div);
+      }
+    } else {
+      gallery.innerHTML = '<div class="hint">No figures generated.</div>';
+    }
+    results.style.display = 'block';
+  } catch (err) {
+    errBox.textContent = 'Request failed: ' + err.message;
+    errBox.style.display = 'block';
+    results.style.display = 'block';
+  } finally {
+    runBtn.disabled = false;
+    bar.style.display = 'none';
+    bar.classList.remove('pulse');
+    statusEl.textContent = `Done in ${((performance.now() - started) / 1000).toFixed(0)} s.`;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Large media: user-uploaded and working videos stay out of the repo
+data/video/*.mp4
+uploads/*.mp4
+
+# Generated outputs and archives
+outputs/
+outputs_archive/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
